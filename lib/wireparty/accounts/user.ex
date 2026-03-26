@@ -18,6 +18,15 @@ defmodule Wireparty.Accounts.User do
       end
     end
 
+    strategies do
+      github do
+        client_id Wireparty.Secrets
+        redirect_uri Wireparty.Secrets
+        client_secret Wireparty.Secrets
+        authorization_params scope: "user:email"
+      end
+    end
+
     tokens do
       enabled? true
       token_resource Wireparty.Accounts.Token
@@ -36,6 +45,34 @@ defmodule Wireparty.Accounts.User do
       get? true
       prepare AshAuthentication.Preparations.FilterBySubject
     end
+
+    create :register_with_github do
+      argument :user_info, :map, allow_nil?: false
+      argument :oauth_tokens, :map, allow_nil?: false
+      upsert? true
+      upsert_identity :unique_email
+      upsert_fields []
+
+      accept [:email]
+
+      change AshAuthentication.GenerateTokenChange
+
+      change fn changeset, _ctx ->
+        user_info = Ash.Changeset.get_argument(changeset, :user_info)
+
+        email =
+          user_info["email"] ||
+            user_info["emails"]
+            |> List.wrap()
+            |> Enum.find(& &1["primary"])
+            |> case do
+              %{"email" => email} -> email
+              _ -> nil
+            end
+
+        Ash.Changeset.change_attribute(changeset, :email, email)
+      end
+    end
   end
 
   policies do
@@ -46,5 +83,11 @@ defmodule Wireparty.Accounts.User do
 
   attributes do
     uuid_primary_key :id
+    attribute :email, :ci_string, allow_nil?: false, public?: true
+    attribute :role, :atom, constraints: [one_of: [:user, :organizer]], default: :user
+  end
+
+  identities do
+    identity :unique_email, [:email]
   end
 end

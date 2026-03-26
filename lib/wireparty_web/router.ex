@@ -25,17 +25,17 @@ defmodule WirepartyWeb.Router do
   scope "/", WirepartyWeb do
     pipe_through :browser
 
-    ash_authentication_live_session :authenticated_routes do
-      # in each liveview, add one of the following at the top of the module:
-      #
-      # If an authenticated user must be present:
-      # on_mount {WirepartyWeb.LiveUserAuth, :live_user_required}
-      #
-      # If an authenticated user *may* be present:
-      # on_mount {WirepartyWeb.LiveUserAuth, :live_user_optional}
-      #
-      # If an authenticated user must *not* be present:
-      # on_mount {WirepartyWeb.LiveUserAuth, :live_no_user}
+    ash_authentication_live_session :authenticated_routes,
+      on_mount: [{WirepartyWeb.LiveUserAuth, :live_user_required}] do
+      live "/dashboard", DashboardLive, :index
+      live "/parties", PartyLive.Index, :index
+      live "/parties/new", PartyLive.New, :new
+      live "/parties/:id/manage", PartyLive.Manage, :manage
+    end
+
+    # Public party page - no auth required
+    live_session :public_routes do
+      live "/party/:slug", PartyLive.Show, :show
     end
   end
 

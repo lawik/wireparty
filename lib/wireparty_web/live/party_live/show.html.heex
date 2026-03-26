@@ -1,0 +1,95 @@
+<div class="min-h-screen flex items-center justify-center p-4">
+  <div class="card bg-base-100 shadow-xl max-w-lg w-full">
+    <div class="card-body items-center text-center">
+      <h1 class="card-title text-3xl font-bold">{@event.name}</h1>
+      <p class="text-base-content/70">
+        Welcome to the party! Connect your device and join the network.
+      </p>
+
+      <div class="badge badge-outline gap-1 my-2">
+        {@peer_count} device(s) connected
+      </div>
+
+      <div :if={@event.status == :active} class="w-48 my-4">
+        <.qr_code url={party_url(@event.slug)} />
+      </div>
+
+      <div :if={@event.status == :draft} class="alert alert-warning my-4">
+        This party hasn't started yet. Hang tight!
+      </div>
+
+      <div :if={@event.status == :archived} class="alert alert-info my-4">
+        This party has ended. Thanks for coming!
+      </div>
+
+      <%= if @peer do %>
+        <div class="w-full space-y-4 mt-4">
+          <div class="alert alert-success">
+            You're in! Here are your connection details.
+          </div>
+
+          <div class="collapse collapse-arrow bg-base-200">
+            <input type="radio" name="config-accordion" checked="checked" />
+            <div class="collapse-title font-medium">
+              Host / Desktop Config
+            </div>
+            <div class="collapse-content">
+              <p class="text-sm text-base-content/60 mb-2">
+                Save this as <code>wireparty.conf</code> and run
+                <code>wg-quick up ./wireparty.conf</code>
+              </p>
+              <div class="relative">
+                <pre id="wg-config" class="bg-base-300 p-3 rounded text-xs overflow-x-auto whitespace-pre">{wg_config(@peer, @event)}</pre>
+                <button
+                  phx-hook="CopyToClipboard"
+                  id="copy-wg"
+                  data-target="wg-config"
+                  class="btn btn-xs btn-ghost absolute top-1 right-1"
+                >
+                  Copy
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="collapse collapse-arrow bg-base-200">
+            <input type="radio" name="config-accordion" />
+            <div class="collapse-title font-medium">
+              Nerves / IEx Config
+            </div>
+            <div class="collapse-content">
+              <p class="text-sm text-base-content/60 mb-2">
+                Paste this into your Nerves device's IEx session:
+              </p>
+              <div class="relative">
+                <pre id="nerves-config" class="bg-base-300 p-3 rounded text-xs overflow-x-auto whitespace-pre">{nerves_config(@peer, @event)}</pre>
+                <button
+                  phx-hook="CopyToClipboard"
+                  id="copy-nerves"
+                  data-target="nerves-config"
+                  class="btn btn-xs btn-ghost absolute top-1 right-1"
+                >
+                  Copy
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      <% else %>
+        <div :if={@event.status == :active} class="w-full mt-4">
+          <form phx-submit="join" class="space-y-3">
+            <input
+              type="text"
+              name="label"
+              placeholder="Device name (optional)"
+              class="input input-bordered w-full"
+            />
+            <button type="submit" class="btn btn-primary w-full text-lg">
+              Join the Party!
+            </button>
+          </form>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>

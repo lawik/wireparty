@@ -21,7 +21,12 @@ if System.get_env("PHX_SERVER") do
 end
 
 config :wireparty, WirepartyWeb.Endpoint,
-  http: [port: String.to_integer(System.get_env("PORT", "4000"))]
+  http: [port: String.to_integer(System.get_env("PORT", "24680"))]
+
+config :wireparty, :github,
+  client_id: System.fetch_env!("GITHUB_CLIENT_ID"),
+  redirect_uri: System.fetch_env!("GITHUB_REDIRECT_URI"),
+  client_secret: System.fetch_env!("GITHUB_CLIENT_SECRET")
 
 if config_env() == :prod do
   database_path =

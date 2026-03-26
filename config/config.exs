@@ -60,7 +60,7 @@ config :spark,
 config :wireparty,
   ecto_repos: [Wireparty.Repo],
   generators: [timestamp_type: :utc_datetime],
-  ash_domains: [Wireparty.Accounts]
+  ash_domains: [Wireparty.Accounts, Wireparty.Party]
 
 # Configure the endpoint
 config :wireparty, WirepartyWeb.Endpoint,

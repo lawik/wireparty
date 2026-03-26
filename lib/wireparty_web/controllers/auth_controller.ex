@@ -22,6 +22,9 @@ defmodule WirepartyWeb.AuthController do
   end
 
   def failure(conn, activity, reason) do
+    require Logger
+    Logger.error("Auth failure: #{inspect(activity)} - #{inspect(reason)}")
+
     message =
       case {activity, reason} do
         {_,
