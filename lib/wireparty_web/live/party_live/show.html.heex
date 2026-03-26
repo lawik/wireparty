@@ -6,8 +6,13 @@
         Welcome to the party! Connect your device and join the network.
       </p>
 
-      <div class="badge badge-outline gap-1 my-2">
-        {@peer_count} device(s) connected
+      <div class="flex gap-2 my-2">
+        <div class="badge badge-outline gap-1">
+          {@peer_count} joined
+        </div>
+        <div :if={MapSet.size(@connected_keys) > 0} class="badge badge-success gap-1">
+          {MapSet.size(@connected_keys)} connected
+        </div>
       </div>
 
       <div :if={@event.status == :active} class="w-48 my-4">

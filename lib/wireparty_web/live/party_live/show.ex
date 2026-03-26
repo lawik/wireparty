@@ -7,12 +7,17 @@ defmodule WirepartyWeb.PartyLive.Show do
   def mount(%{"slug" => slug}, _session, socket) do
     case Wireparty.Party.Event.get_by_slug(slug, actor: Wireparty.Actors.public(), load: [:peers]) do
       {:ok, event} ->
+        if connected?(socket) do
+          Wireparty.Party.PubSub.subscribe(event.id)
+        end
+
         {:ok,
          socket
          |> assign(:event, event)
          |> assign(:peer, nil)
          |> assign(:page_title, event.name)
-         |> assign(:peer_count, length(event.peers))}
+         |> assign(:peer_count, length(event.peers))
+         |> assign(:connected_keys, MapSet.new())}
 
       {:error, _} ->
         {:ok,
@@ -32,7 +37,6 @@ defmodule WirepartyWeb.PartyLive.Show do
            actor: Wireparty.Actors.public()
          ) do
       {:ok, peer} ->
-        # Load the event association for config generation
         peer = %{peer | event: event}
 
         {:noreply,
@@ -44,6 +48,21 @@ defmodule WirepartyWeb.PartyLive.Show do
         {:noreply, put_flash(socket, :error, "Could not join the party. Try again!")}
     end
   end
+
+  @impl true
+  def handle_info({:peer_joined, _peer}, socket) do
+    {:noreply, assign(socket, :peer_count, socket.assigns.peer_count + 1)}
+  end
+
+  def handle_info({:handshake_status, connected_keys}, socket) do
+    {:noreply, assign(socket, :connected_keys, connected_keys)}
+  end
+
+  def handle_info({:event_updated, event}, socket) do
+    {:noreply, assign(socket, :event, event)}
+  end
+
+  def handle_info(_, socket), do: {:noreply, socket}
 
   defp wg_config(peer, event) do
     Wireparty.WireGuard.peer_config(peer, event)

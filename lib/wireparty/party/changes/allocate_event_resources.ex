@@ -12,9 +12,9 @@ defmodule Wireparty.Party.Changes.AllocateEventResources do
       {next_port, next_subnet} = next_allocation()
 
       changeset
-      |> Ash.Changeset.change_attribute(:listen_port, next_port)
-      |> Ash.Changeset.change_attribute(:subnet_index, next_subnet)
-      |> Ash.Changeset.change_attribute(:interface_name, "wg-party-#{next_subnet}")
+      |> Ash.Changeset.force_change_attribute(:listen_port, next_port)
+      |> Ash.Changeset.force_change_attribute(:subnet_index, next_subnet)
+      |> Ash.Changeset.force_change_attribute(:interface_name, "wg-party-#{next_subnet}")
     end)
   end
 

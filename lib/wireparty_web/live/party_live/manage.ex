@@ -9,10 +9,15 @@ defmodule WirepartyWeb.PartyLive.Manage do
 
     case Ash.get(Wireparty.Party.Event, id, actor: actor, load: [:peers]) do
       {:ok, event} ->
+        if connected?(socket) do
+          Wireparty.Party.PubSub.subscribe(event.id)
+        end
+
         {:ok,
          socket
          |> assign(:event, event)
-         |> assign(:page_title, "Manage: #{event.name}")}
+         |> assign(:page_title, "Manage: #{event.name}")
+         |> assign(:connected_keys, MapSet.new())}
 
       {:error, _} ->
         {:ok,
@@ -58,8 +63,36 @@ defmodule WirepartyWeb.PartyLive.Manage do
     end
   end
 
+  @impl true
+  def handle_info({:peer_joined, peer}, socket) do
+    event = socket.assigns.event
+    peers = event.peers ++ [peer]
+    {:noreply, assign(socket, :event, %{event | peers: peers})}
+  end
+
+  def handle_info({:peer_removed, peer_id}, socket) do
+    event = socket.assigns.event
+    peers = Enum.reject(event.peers, &(&1.id == peer_id))
+    {:noreply, assign(socket, :event, %{event | peers: peers})}
+  end
+
+  def handle_info({:handshake_status, connected_keys}, socket) do
+    {:noreply, assign(socket, :connected_keys, connected_keys)}
+  end
+
+  def handle_info({:event_updated, event}, socket) do
+    event = Ash.load!(event, [:peers], actor: Wireparty.Actors.system())
+    {:noreply, assign(socket, :event, event)}
+  end
+
+  def handle_info(_, socket), do: {:noreply, socket}
+
   defp party_url(slug) do
     WirepartyWeb.Endpoint.url() <> "/party/#{slug}"
+  end
+
+  defp peer_connected?(peer, connected_keys) do
+    MapSet.member?(connected_keys, peer.public_key)
   end
 
   @impl true
@@ -99,7 +132,12 @@ defmodule WirepartyWeb.PartyLive.Manage do
               </div>
               <div class="flex justify-between">
                 <dt class="text-base-content/60">Peers</dt>
-                <dd>{length(@event.peers)}</dd>
+                <dd>
+                  {length(@event.peers)} joined
+                  <span :if={MapSet.size(@connected_keys) > 0} class="text-success ml-1">
+                    ({MapSet.size(@connected_keys)} connected)
+                  </span>
+                </dd>
               </div>
             </dl>
 
@@ -151,7 +189,7 @@ defmodule WirepartyWeb.PartyLive.Manage do
 
       <div class="card bg-base-100 shadow">
         <div class="card-body">
-          <h2 class="card-title">Connected Peers</h2>
+          <h2 class="card-title">Peers</h2>
 
           <div :if={@event.peers == []} class="py-4 text-base-content/60 text-center">
             No peers have joined yet.
@@ -161,6 +199,7 @@ defmodule WirepartyWeb.PartyLive.Manage do
             <table class="table table-sm">
               <thead>
                 <tr>
+                  <th>Status</th>
                   <th>Label</th>
                   <th>IP</th>
                   <th>Public Key</th>
@@ -169,6 +208,20 @@ defmodule WirepartyWeb.PartyLive.Manage do
               </thead>
               <tbody>
                 <tr :for={peer <- @event.peers}>
+                  <td>
+                    <span
+                      :if={peer_connected?(peer, @connected_keys)}
+                      class="badge badge-success badge-xs"
+                    >
+                      online
+                    </span>
+                    <span
+                      :if={!peer_connected?(peer, @connected_keys)}
+                      class="badge badge-ghost badge-xs"
+                    >
+                      offline
+                    </span>
+                  </td>
                   <td>{peer.label || "—"}</td>
                   <td class="font-mono text-xs">{peer.assigned_ip}</td>
                   <td class="font-mono text-xs">{String.slice(peer.public_key, 0..15)}...</td>

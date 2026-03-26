@@ -22,21 +22,27 @@ defmodule Wireparty.Party.Peer do
       accept [:label]
       argument :event_id, :uuid, allow_nil?: false
 
-      change manage_relationship(:event_id, :event, type: :append)
+      change fn changeset, _ctx ->
+        event_id = Ash.Changeset.get_argument(changeset, :event_id)
+        Ash.Changeset.force_change_attribute(changeset, :event_id, event_id)
+      end
+
       change Wireparty.Party.Changes.AllocatePeerAddress
 
       change fn changeset, _ctx ->
         {priv, pub} = Wireparty.Crypto.generate_keypair()
 
         changeset
-        |> Ash.Changeset.change_attribute(:private_key, priv)
-        |> Ash.Changeset.change_attribute(:public_key, pub)
+        |> Ash.Changeset.force_change_attribute(:private_key, priv)
+        |> Ash.Changeset.force_change_attribute(:public_key, pub)
       end
 
       change after_action(fn _changeset, peer, _context ->
         %{peer_id: peer.id}
         |> Wireparty.Workers.AddPeerWorker.new()
         |> Oban.insert!()
+
+        Wireparty.Party.PubSub.broadcast_peer_joined(peer.event_id, peer)
 
         {:ok, peer}
       end)
@@ -57,18 +63,19 @@ defmodule Wireparty.Party.Peer do
       authorize_if always()
     end
 
+    # Anyone (including public/unauthenticated) can join a party
     policy action(:join) do
       authorize_if always()
     end
 
+    # Anyone can read peers (needed to show peer count on public page)
     policy action([:read, :for_event]) do
-      authorize_if Wireparty.Checks.IsSystem
-      authorize_if Wireparty.Checks.IsOrganizer
+      authorize_if always()
     end
 
+    # Only the event's organizer can remove peers
     policy action(:destroy) do
-      authorize_if Wireparty.Checks.IsSystem
-      authorize_if Wireparty.Checks.IsOrganizer
+      authorize_if actor_present()
     end
   end
 

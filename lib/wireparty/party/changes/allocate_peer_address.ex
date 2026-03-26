@@ -13,8 +13,8 @@ defmodule Wireparty.Party.Changes.AllocatePeerAddress do
       next_index = next_peer_index(event_id)
 
       changeset
-      |> Ash.Changeset.change_attribute(:peer_index, next_index)
-      |> Ash.Changeset.change_attribute(
+      |> Ash.Changeset.force_change_attribute(:peer_index, next_index)
+      |> Ash.Changeset.force_change_attribute(
         :assigned_ip,
         Wireparty.Subnet.peer_address(event.subnet_index, next_index)
       )

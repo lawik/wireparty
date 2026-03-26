@@ -79,6 +79,10 @@ defmodule Wireparty.Accounts.User do
     bypass AshAuthentication.Checks.AshAuthenticationInteraction do
       authorize_if always()
     end
+
+    policy action(:read) do
+      authorize_if actor_present()
+    end
   end
 
   attributes do

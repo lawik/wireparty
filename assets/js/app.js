@@ -31,7 +31,8 @@ Hooks.CopyToClipboard = {
   mounted() {
     this.el.addEventListener("click", () => {
       const target = document.getElementById(this.el.dataset.target)
-      navigator.clipboard.writeText(target.textContent)
+      const text = target.value !== undefined ? target.value : target.textContent
+      navigator.clipboard.writeText(text)
       const original = this.el.textContent
       this.el.textContent = "Copied!"
       setTimeout(() => { this.el.textContent = original }, 2000)

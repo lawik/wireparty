@@ -60,6 +60,8 @@ defmodule Wireparty.Party.Event do
         |> Wireparty.Workers.SetupPartyWorker.new()
         |> Oban.insert!()
 
+        Wireparty.Party.PubSub.broadcast_event_updated(event.id, event)
+
         {:ok, event}
       end)
     end
@@ -72,6 +74,8 @@ defmodule Wireparty.Party.Event do
         %{event_id: event.id}
         |> Wireparty.Workers.TeardownPartyWorker.new()
         |> Oban.insert!()
+
+        Wireparty.Party.PubSub.broadcast_event_updated(event.id, event)
 
         {:ok, event}
       end)
@@ -87,18 +91,23 @@ defmodule Wireparty.Party.Event do
       authorize_if always()
     end
 
+    # Anyone can look up a party by slug (public page)
     policy action(:by_slug) do
       authorize_if always()
     end
 
+    # Any authenticated user can list their own parties
+    # IsPartyOrganizer filter ensures they only see ones they organize
     policy action(:read) do
-      authorize_if Wireparty.Checks.IsOrganizer
+      authorize_if Wireparty.Checks.IsPartyOrganizer
     end
 
+    # Any authenticated user can create a party (they become its organizer)
     policy action(:create) do
-      authorize_if Wireparty.Checks.IsOrganizer
+      authorize_if actor_present()
     end
 
+    # Only the party's organizer can activate, archive, or destroy
     policy action([:activate, :archive, :destroy]) do
       authorize_if Wireparty.Checks.IsPartyOrganizer
     end

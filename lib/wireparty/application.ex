@@ -23,7 +23,8 @@ defmodule Wireparty.Application do
       {DNSCluster, query: Application.get_env(:wireparty, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: Wireparty.PubSub},
       WirepartyWeb.Endpoint,
-      {AshAuthentication.Supervisor, [otp_app: :wireparty]}
+      {AshAuthentication.Supervisor, [otp_app: :wireparty]},
+      Wireparty.WireGuard.HandshakePoller
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
